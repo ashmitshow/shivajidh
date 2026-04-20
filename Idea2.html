@@ -491,6 +491,11 @@ renderScene(SCENES[currentScene]);
 
 window.addEventListener('history:decision', e => console.log('[history:decision]', e.detail));
 window.addEventListener('history:narration', e => console.log('[history:narration]', e.detail));
+window.addEventListener("load", () => {
+  if (performance.navigation.type === 1) {
+    window.location.href = "index.html";
+  }
+});
 </script>
 </body>
 </html>
