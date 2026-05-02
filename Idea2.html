@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<link rel="stylesheet" href="style.css">
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Great Escape from Agra</title>
-
+<link rel="stylesheet" href="style.css">
+<!-- ADDED: Leaflet CSS (loads once, used only when a map scene is shown) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 </head>
 <body>
 
@@ -32,6 +33,12 @@ const SCENES = [
     act: "ACT I",
     title: "The Emperor's Order",
     footer: "January 1665 · Mughal Court, Agra",
+    // ADDED: media panel — map showing Agra and the Deccan theatre
+    media: {
+      type: "image",
+      src: "durbar.webp",
+      alt:"An image showing the durbar of Aurangzeb",
+    },
     narration: [
       "The failure of Shaista Khan and the sack of Surat caused bitter mortification to Aurangzib and his Court, and he decided to send his ablest Hindu and Muhammadan generals to the Deccan.",
       "Among the promotions and transfers on his birthday, 30th September, 1664, the Emperor appointed Mirza Rajah Jai Singh to put down Shivaji.",
@@ -46,6 +53,19 @@ const SCENES = [
     act: "ACT I — Scene 2",
     title: "The Approach",
     role: "You are Jai Singh II, Mirza Raja of Amber",
+    // ADDED: map showing strategic positions
+    media: {
+      type: "map",
+      center: [18.0, 75.5],
+      zoom: 6,
+      markers: [
+        { lat: 17.3616, lng: 76.8200, label: "Bijapur Sultanate", icon: "🌙" },
+        { lat: 17.3850, lng: 78.4867, label: "Golkonda", icon: "💎" },
+        { lat: 18.5204, lng: 73.8567, label: "Pune — Maratha Core", icon: "🏔️" },
+        { lat: 18.3278, lng: 74.0569, label: "Saswad — Jai Singh's Base", icon: "⚔️" },
+        { lat: 16.7030, lng: 74.2433, label: "Kolhapur — Konkan Entry", icon: "🌊" },
+      ]
+    },
     narrative: "Your column has crossed the Narmada. The Deccan plateau opens before you. Shivaji's network of hill forts stretches from Pune to the Konkan coast. Your cavalry is strong, your artillery slow. The monsoon is four months away — time is your most precious resource.",
     question: "How do you approach the Maratha heartland?",
     footer: "February 1665 · Northern Deccan",
@@ -91,6 +111,17 @@ const SCENES = [
     act: "ACT III",
     title: "The Purandar Fort",
     footer: "1665 · Purandar Fort",
+    // ADDED: map showing Purandar geography
+    media: {
+      type: "map",
+      center: [18.2667, 73.9833],
+      zoom: 12,
+      markers: [
+        { lat: 18.2667, lng: 73.9833, label: "Purandar Citadel (4,364 ft)", icon: "🏰" },
+        { lat: 18.2720, lng: 74.0020, label: "Vajragarh (Rudramala)", icon: "⚔️" },
+        { lat: 18.3278, lng: 74.0569, label: "Saswad — Jai Singh's Camp", icon: "🏕️" },
+      ]
+    },
     narration: [
       "Six miles south of Saswad rises the stupendous mountain mass of Purandar, the highest point of which towers 4,364 feet above sea-level and more than 2,500 feet above the plain at its foot. It is really a double fort, with an independent and very strong sister enclosure, named Vajragarh. on a ridge running out east of it.",
       "The Western Ghats form a long towering wall running north to south along the western side of the Deccan. They have thrown off a number of short spurs eastwards, every two of which enclose a valley, the bed of some stream rolling east to join its sisters and form the mighty rivers of the south, the Godavari and the Krishna. ",
@@ -318,6 +349,21 @@ options: [
   act: "ACT XI",
   title: "The Route",
   footer: "August 1666 · Agra to the Deccan",
+  // ADDED: escape route map
+  media: {
+    type: "map",
+    center: [23.0, 80.0],
+    zoom: 5,
+    markers: [
+      { lat: 27.1767, lng: 78.0081, label: "Agra — Escape begins", icon: "🚪" },
+      { lat: 27.4924, lng: 77.6737, label: "Mathura — Disguise adopted", icon: "🪔" },
+      { lat: 25.4358, lng: 81.8463, label: "Allahabad — Ganges crossing", icon: "🌊" },
+      { lat: 25.3176, lng: 82.9739, label: "Benares — Near capture", icon: "⚠️" },
+      { lat: 24.7955, lng: 84.9994, label: "Gaya — Pilgrim cover", icon: "🕌" },
+      { lat: 19.8135, lng: 85.8312, label: "Puri — Jagannath Temple", icon: "🛕" },
+      { lat: 18.5204, lng: 73.8567, label: "Rajgarh — Homecoming", icon: "🏠" },
+    ]
+  },
   narration: [
     "With consummate cunning Shiva threw his pursuers off the scent, by following a route exactly opposite to that which leads to Maharashtra. ",
     
@@ -367,8 +413,128 @@ options: [
 ];
 
 /* ═══════════════════════════════════════════
-   ENGINE
+   ADDED: MEDIA PANEL SYSTEM
+   - preloadMedia(scene): starts loading in background
+   - buildMediaPanel(scene): returns ready DOM element
+   - Leaflet is loaded lazily on first map request
 ═══════════════════════════════════════════ */
+
+// Cache: key = scene index, value = { el, ready, leafletMap }
+const mediaCache = {};
+let leafletLoaded = false;
+let leafletLoadPromise = null;
+
+function loadLeaflet() {
+  if (leafletLoaded) return Promise.resolve();
+  if (leafletLoadPromise) return leafletLoadPromise;
+  leafletLoadPromise = new Promise((resolve) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    s.onload = () => { leafletLoaded = true; resolve(); };
+    document.head.appendChild(s);
+  });
+  return leafletLoadPromise;
+}
+
+// ADDED: Preload media for a given scene index (non-blocking)
+function preloadMedia(sceneIndex) {
+  if (sceneIndex < 0 || sceneIndex >= SCENES.length) return;
+  if (mediaCache[sceneIndex]) return; // already preloaded
+
+  const scene = SCENES[sceneIndex];
+  if (!scene.media) return;
+
+  const entry = { el: null, ready: false, leafletMap: null };
+  mediaCache[sceneIndex] = entry;
+
+  const panel = document.createElement('div');
+  panel.className = 'media-panel';
+
+  if (scene.media.type === 'image') {
+    const img = new Image();
+    img.className = 'media-img';
+    img.alt = scene.media.alt || '';
+    panel.appendChild(img);
+    entry.el = panel;
+    img.onload = () => { entry.ready = true; };
+    img.onerror = () => { entry.ready = true; }; // fail silently
+    img.src = scene.media.src;
+  } else if (scene.media.type === 'map') {
+    const mapDiv = document.createElement('div');
+    mapDiv.className = 'media-map-container';
+    panel.appendChild(mapDiv);
+    entry.el = panel;
+
+    loadLeaflet().then(() => {
+      // Must be in DOM (even hidden) for Leaflet to size correctly
+      // We use a detached off-screen div trick: append to body, offscreen
+      mapDiv.style.position = 'absolute';
+      mapDiv.style.left = '-9999px';
+      mapDiv.style.width = '500px';
+      mapDiv.style.height = '500px';
+      document.body.appendChild(mapDiv);
+
+      const map = L.map(mapDiv, {
+        center: scene.media.center,
+        zoom: scene.media.zoom,
+        zoomControl: true,
+        attributionControl: false,
+        scrollWheelZoom: false,
+      });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Add custom markers
+      (scene.media.markers || []).forEach(m => {
+        const icon = L.divIcon({
+          className: '',
+          html: `<div class="map-marker-wrap"><span class="map-marker-icon">${m.icon || '📍'}</span><div class="map-marker-label">${m.label}</div></div>`,
+          iconAnchor: [12, 12],
+        });
+        L.marker([m.lat, m.lng], { icon }).addTo(map);
+      });
+
+      entry.leafletMap = map;
+      entry.ready = true;
+    });
+  }
+}
+
+// ADDED: Mount cached media panel into scene layout, invalidate map size
+function mountMediaPanel(sceneIndex, containerEl) {
+  const entry = mediaCache[sceneIndex];
+  if (!entry || !entry.el) return;
+
+  const panel = entry.el;
+
+  // Move mapDiv back from body into the panel's proper place
+  if (entry.leafletMap) {
+    const mapDiv = panel.querySelector('.media-map-container');
+    if (mapDiv) {
+      mapDiv.style.position = '';
+      mapDiv.style.left = '';
+      mapDiv.style.width = '';
+      mapDiv.style.height = '';
+      // Leaflet needs a frame to recalculate after becoming visible
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          entry.leafletMap.invalidateSize();
+        });
+      });
+    }
+  }
+
+  containerEl.appendChild(panel);
+
+  // Trigger fade-in after mount
+  requestAnimationFrame(() => {
+    panel.classList.add('media-panel-visible');
+  });
+}
+
+/* ═══════════════════════════════════════════ */
 let currentScene = 0;
 let narrationTimer = null;
 let narrationStep = 0;
@@ -399,14 +565,32 @@ function renderScene(scene) {
   narrationStep = 0;
   clearTimeout(narrationTimer);
 
+  // ADDED: Preload media for next scene in background
+  preloadMedia(currentScene + 1);
+
+  // MODIFIED: outer wrap now uses scene-layout for two-column support
   const wrap = document.createElement('div');
-  wrap.className = 'scene-enter';
+  wrap.className = 'scene-enter scene-layout';
+
+  // ADDED: left media panel (if scene has media)
+  if (scene.media) {
+    // Ensure current scene is preloaded (in case of direct jump)
+    if (!mediaCache[currentScene]) preloadMedia(currentScene);
+    mountMediaPanel(currentScene, wrap);
+  }
+
+  // Right content panel
+  const contentPanel = document.createElement('div');
+  contentPanel.className = scene.media ? 'content-panel' : 'content-panel content-panel-full';
 
   if (scene.type === 'decision') {
-    wrap.appendChild(buildDecisionScene(scene));
+    contentPanel.appendChild(buildDecisionScene(scene));
+    wrap.appendChild(contentPanel);
+    stage.appendChild(wrap);
   } else if (scene.type === 'narration') {
     const { el, start } = buildNarrationScene(scene);
-    wrap.appendChild(el);
+    contentPanel.appendChild(el);
+    wrap.appendChild(contentPanel);
     stage.appendChild(wrap);
     start();
     return;
@@ -609,6 +793,8 @@ function renderEnd() {
 }
 
 /* ── INIT ── */
+// ADDED: Preload first scene's media immediately on load
+preloadMedia(0);
 renderScene(SCENES[currentScene]);
 
 window.addEventListener('history:decision', e => console.log('[history:decision]', e.detail));
