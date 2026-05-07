@@ -36,9 +36,9 @@ export const jai_singh_route = {
 "type": "FeatureCollection",
 "name": "jai_singh_route",
 "features": [
-{ "type": "Feature", "properties": { "Name": "handia" }, "geometry": { "type": "Point", "coordinates": [ 76.9829058, 22.486322, 0.0 ] } },
-{ "type": "Feature", "properties": { "Name": "aurangabad" }, "geometry": { "type": "Point", "coordinates": [ 75.3393196, 19.875754, 0.0 ] } },
-{ "type": "Feature", "properties": { "Name": "pune" }, "geometry": { "type": "Point", "coordinates": [ 73.8786239, 18.5246089, 0.0 ] } }
+{ "type": "Feature", "properties": { "Name": "Handia" }, "geometry": { "type": "Point", "coordinates": [ 76.9829058, 22.486322, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Aurangabad" }, "geometry": { "type": "Point", "coordinates": [ 75.3393196, 19.875754, 0.0 ] } },
+{ "type": "Feature", "properties": { "Name": "Pune" }, "geometry": { "type": "Point", "coordinates": [ 73.8786239, 18.5246089, 0.0 ] } }
 ],
 path: [
     [76.9829058, 22.486322], // Handia
@@ -213,7 +213,7 @@ const agraEscapePath = escape_route.features.map(f => [
 export const getLayers = (scene_id,  currentTime) => {
   switch (scene_id) {
     // initial forts
-      case 'ACT-I':
+      case 'ACT II':
         // return the fort Fort_list
         return[
           new deck.IconLayer({
@@ -253,27 +253,43 @@ export const getLayers = (scene_id,  currentTime) => {
         })
         ]
     // route by jai singh
-    case 'ACT-Is2':
-        return [
-    new deck.TripsLayer({
-        id: 'jai-singh-march',
-        data: [jai_singh_route],
-        getPath: d => d.path,
-        getTimestamps: d => d.timestamps,
-        getColor: [255, 0, 0], // Red
-        widthMinPixels: 3,
-        
-        // FIX 1: Use the variable passed to the function, not '0'
-        currentTime: Number(currentTime), 
-        
-        // FIX 2: Large trail ensures the line stays solid from the start
-        trailLength: 100, 
-        
-        updateTriggers: {
-            // This ensures deck.gl recalculates when the time changes
-            currentTime: [Number(currentTime)]
-        }
-    })                
+    case 'ACT III':
+      return [
+      new deck.PathLayer({
+              id: 'jai-signh-route',
+              data: [{ path: jai_singh_route.path }],
+              getPath: d => d.path,
+              getColor: [0, 125, 50], // Saffron/Orange for the route
+              getWidth: 20,
+              widthMinPixels: 4,
+              capRounded: true,
+              jointRounded: true,
+              shadowEnabled: true, // Adds depth against the satellite image
+              parameters: {
+                depthTest: false // Ensures it stays visible over high-res tiles
+            }
+          }),    
+          new deck.ScatterplotLayer({
+            id: 'jai-singh-route-stops',
+            data: jai_singh_route.features,
+            getPosition: d => [d.geometry.coordinates[0], d.geometry.coordinates[1], 550],
+            getFillColor: [255, 255, 255],
+            getRadius: 1000,
+            radiusMinPixels: 5
+          }),
+          new deck.TextLayer({
+          id: 'agra-march-text',
+          data: jai_singh_route.features,
+          getPosition: d => [d.geometry.coordinates[0], d.geometry.coordinates[1] , 500], // Slightly above the line
+          getText: d => d.properties.Name,
+          getSize: 12,
+          getAngle: 0,
+          getTextAnchor: 'middle',
+          getAlignmentBaseline: 'bottom',
+          getColor: [0, 153, 50],
+          outlineWidth: 2,
+          outlineColor: [0, 0, 0]
+        }),
       ]
     // maratha region
     case 'ACT-II':  
@@ -298,7 +314,8 @@ export const getLayers = (scene_id,  currentTime) => {
         })
       ]
     // purandar fort
-    case 'ACT-III': 
+    case 'ACT IV':
+    case 'ACT V': 
       return [
         new deck.TileLayer({
           id: 'regional-satellite-layer',
@@ -349,7 +366,11 @@ export const getLayers = (scene_id,  currentTime) => {
         })        
       ]
     // mughal troop locations
-      case 'ACT-IV': 
+      case 'ACT VI': 
+      case 'ACT VII':
+      case 'ACT VIII':
+      case 'ACT IX':
+      case 'ACT X':
       return [
         new deck.TileLayer({
           id: 'regional-satellite-layer',
@@ -410,7 +431,7 @@ export const getLayers = (scene_id,  currentTime) => {
           // Tells the layer to use the 'flag' definition above
           getIcon: d => 'flag',
           getPosition: d => d.geometry.coordinates,
-          getSize: 10, // Adjust size as needed
+          getSize: 30, // Adjust size as needed
           sizeScale: 1,
           pickable: true
         })
@@ -483,7 +504,8 @@ export const getLayers = (scene_id,  currentTime) => {
         })
       ]
     // forts ceceded to marathas
-      case 'ACT-VII':
+      case 'ACT XI':
+      case 'ACT XII':
         return [
           new deck.IconLayer({
           id: 'maratha-forts',
@@ -538,7 +560,7 @@ export const getLayers = (scene_id,  currentTime) => {
       ]
       
       // journey to agra decision
-      case 'ACT-IX' :
+      case 'ACT-XIII' :
         return [
           new deck.TileLayer({
             id: 'regional-satellite-layer',
@@ -596,7 +618,7 @@ export const getLayers = (scene_id,  currentTime) => {
         ]
       
       // to agra route
-      case 'ACT-X':
+      case 'ACT XIV':
         return [
           new deck.PathLayer({
             id: 'agra-campaign-route',
@@ -636,7 +658,7 @@ export const getLayers = (scene_id,  currentTime) => {
         ]
 
         // agra captivity
-      case 'ACT-XI': 
+      case 'ACT XIII': 
         return [
           new deck.TileLayer({
             id: 'regional-satellite-layer',
@@ -665,7 +687,10 @@ export const getLayers = (scene_id,  currentTime) => {
         ]
       
       // escape from agra
-      case 'ACT-XII':
+      case 'ACT XV':
+      case 'ACT XVI':
+      case 'ACT XVII':  
+      case 'ACT XVIII':
         return [
           new deck.PathLayer({
             id: 'agra-escape-route',
